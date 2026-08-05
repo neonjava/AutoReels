@@ -20,12 +20,28 @@ export default function PlatformsPage() {
     const accessToken = window.prompt(
       `Access token for ${platform} (stored encrypted; leave blank for demo connect)`
     )
+    const credentials: Record<string, string> = {
+      accessToken: accessToken || 'demo-token',
+    }
+    if (platform === 'instagram' && accessToken) {
+      const igUserId = window.prompt(
+        'Instagram User ID (numeric). Leave blank to auto-detect from token.'
+      )
+      if (igUserId) credentials.igUserId = igUserId
+      else {
+        try {
+          const me = await fetch(
+            `https://graph.instagram.com/me?fields=user_id,username&access_token=${encodeURIComponent(accessToken)}`
+          ).then((r) => r.json())
+          if (me.user_id) credentials.igUserId = String(me.user_id)
+        } catch {
+          /* ignore — backend will fail clearly on upload if missing */
+        }
+      }
+    }
     await api.post(`/platforms/${platform}/connect`, {
       username,
-      credentials: {
-        accessToken: accessToken || 'demo-token',
-        igUserId: platform === 'instagram' ? 'demo-ig-user' : undefined,
-      },
+      credentials,
     })
     await load()
   }
