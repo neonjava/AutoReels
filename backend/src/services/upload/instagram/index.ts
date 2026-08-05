@@ -64,19 +64,36 @@ export class InstagramProvider extends BasePlatformProvider {
 
     const buf = fs.readFileSync(videoPath);
     const form = new FormData();
-    form.append('file', new Blob([buf], { type: 'video/mp4' }), 'reel.mp4');
+    form.append('reqtype', 'fileupload');
+    form.append(
+      'fileToUpload',
+      new Blob([buf], { type: 'video/mp4' }),
+      'reel.mp4'
+    );
 
-    // Temporary public host so Instagram can fetch the file (required by Content Publishing).
-    const res = await fetch('https://0x0.st', {
-      method: 'POST',
-      body: form,
-      headers: { 'User-Agent': 'curl/8.0' },
-    });
+    // Instagram requires a publicly fetchable video URL.
+    // Catbox is used as a temporary staging host for local files.
+    let res: Response;
+    try {
+      res = await fetch('https://catbox.moe/user/api.php', {
+        method: 'POST',
+        body: form,
+        headers: { 'User-Agent': 'AutoReels/1.0' },
+      });
+    } catch (err) {
+      const cause =
+        err instanceof Error && 'cause' in err && err.cause instanceof Error
+          ? err.cause.message
+          : err instanceof Error
+            ? err.message
+            : 'network error';
+      throw new Error(`Failed to stage video for Instagram: ${cause}`);
+    }
+
     const text = (await res.text()).trim();
     if (!res.ok || !/^https?:\/\//i.test(text)) {
       throw new Error(
-        `Could not stage video for Instagram (host returned: ${text.slice(0, 120)}). ` +
-          'Provide a publicly reachable video URL or fix temporary hosting.'
+        `Could not stage video for Instagram (host returned: ${text.slice(0, 160)})`
       );
     }
     return text.split(/\s+/)[0];
