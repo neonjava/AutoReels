@@ -1,6 +1,7 @@
 import { type FormEvent, useEffect, useState } from 'react'
 import api, { type PlatformId, type UploadJob } from '../services/api'
-import { ProgressBar, StatusIcon } from '../components/ui'
+import { CaptionEditor } from '../components/CaptionEditor'
+import { ProgressPanel } from '../components/ProgressPanel'
 import { useUploadProgress } from '../hooks/useUploadProgress'
 import { Loader2 } from 'lucide-react'
 import clsx from 'clsx'
@@ -118,15 +119,7 @@ export default function UploadPage() {
             <div className="font-medium mt-1">{title}</div>
           </div>
 
-          <label className="block space-y-1.5">
-            <span className="text-xs text-[var(--muted)]">Caption (editable)</span>
-            <textarea
-              rows={8}
-              value={caption}
-              onChange={(e) => setCaption(e.target.value)}
-              className="w-full rounded-2xl glass-soft px-4 py-3 outline-none focus:ring-2 focus:ring-sky-400/40 resize-y"
-            />
-          </label>
+          <CaptionEditor value={caption} onChange={setCaption} />
 
           <div>
             <div className="text-xs text-[var(--muted)] mb-2">Platforms</div>
@@ -162,29 +155,7 @@ export default function UploadPage() {
       {error && <p className="text-sm text-red-400">{error}</p>}
 
       {job && (
-        <div className="glass rounded-3xl p-5 space-y-3">
-          <h2 className="page-title text-lg">Live progress</h2>
-          {job.platforms.map((p) => {
-            const live = progress[`${job.id}:${p.platform}`]
-            const status = live?.status ?? p.status
-            const value = live?.progress ?? p.progress
-            return (
-              <div key={p.platform} className="glass-soft rounded-2xl p-4 space-y-2">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 capitalize">
-                    <StatusIcon status={status} />
-                    {p.platform}
-                  </div>
-                  <span className="text-xs text-[var(--muted)]">{status}</span>
-                </div>
-                <ProgressBar value={value} />
-                {live?.error || p.error ? (
-                  <p className="text-xs text-red-400">{live?.error || p.error}</p>
-                ) : null}
-              </div>
-            )
-          })}
-        </div>
+        <ProgressPanel jobId={job.id} platforms={job.platforms} live={progress} />
       )}
     </div>
   )

@@ -1,13 +1,33 @@
 import { useEffect, useState } from 'react'
 import api, { type UploadJob } from '../services/api'
 import { Skeleton, StatusIcon } from '../components/ui'
+import { CaptionEditor } from '../components/CaptionEditor'
 
 export default function HistoryPage() {
   const [jobs, setJobs] = useState<UploadJob[] | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [draftCaption, setDraftCaption] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  async function load() {
+    const res = await api.get('/history')
+    setJobs(res.data.jobs)
+  }
 
   useEffect(() => {
-    api.get('/history').then((res) => setJobs(res.data.jobs))
+    void load()
   }, [])
+
+  async function saveCaption(jobId: string) {
+    setSaving(true)
+    try {
+      await api.patch(`/uploads/${jobId}/caption`, { caption: draftCaption })
+      setEditingId(null)
+      await load()
+    } finally {
+      setSaving(false)
+    }
+  }
 
   if (!jobs) {
     return (
@@ -39,10 +59,35 @@ export default function HistoryPage() {
                   {job.created_by_username} · {new Date(job.created_at + 'Z').toLocaleString()}
                 </div>
               </div>
-              <span className="text-xs capitalize px-2.5 py-1 rounded-full bg-white/5">
-                {job.status}
-              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    setEditingId(editingId === job.id ? null : job.id)
+                    setDraftCaption(job.caption)
+                  }}
+                  className="text-xs px-2.5 py-1 rounded-full glass-soft text-[var(--muted)] hover:text-[var(--text)]"
+                >
+                  {editingId === job.id ? 'Close' : 'Edit caption'}
+                </button>
+                <span className="text-xs capitalize px-2.5 py-1 rounded-full bg-white/5">
+                  {job.status}
+                </span>
+              </div>
             </div>
+
+            {editingId === job.id && (
+              <div className="space-y-3">
+                <CaptionEditor value={draftCaption} onChange={setDraftCaption} rows={5} />
+                <button
+                  disabled={saving}
+                  onClick={() => saveCaption(job.id)}
+                  className="rounded-2xl bg-gradient-to-r from-[#5ac8fa] to-[#0a84ff] px-4 py-2 text-sm text-white disabled:opacity-60"
+                >
+                  {saving ? 'Saving…' : 'Save caption'}
+                </button>
+              </div>
+            )}
+
             <div className="grid sm:grid-cols-3 gap-2">
               {job.platforms.map((p) => (
                 <div
@@ -50,7 +95,9 @@ export default function HistoryPage() {
                   className="glass-soft rounded-2xl px-3 py-2.5 flex items-center gap-2 text-sm"
                 >
                   <StatusIcon status={p.status} />
-                  <span className="capitalize">{p.platform}</span>
+                  <span className="capitalize">
+                    {p.platform === 'youtube' ? 'YouTube' : p.platform}
+                  </span>
                   <span className="ml-auto text-xs text-[var(--muted)] capitalize">
                     {p.status}
                   </span>

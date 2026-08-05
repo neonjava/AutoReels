@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import api, { type UploadJob } from '../services/api'
-import { Skeleton, StatusIcon, ProgressBar } from '../components/ui'
+import { Skeleton } from '../components/ui'
+import { ProgressPanel } from '../components/ProgressPanel'
 import { useUploadProgress } from '../hooks/useUploadProgress'
 
 export default function MyUploadsPage() {
@@ -37,8 +38,8 @@ export default function MyUploadsPage() {
           </div>
         )}
         {jobs.map((job) => (
-          <div key={job.id} className="glass rounded-3xl p-5 space-y-3">
-            <div className="flex justify-between gap-2">
+          <div key={job.id} className="space-y-2">
+            <div className="flex justify-between gap-2 px-1">
               <div>
                 <div className="page-title text-lg">{job.title || 'Untitled'}</div>
                 <div className="text-xs text-[var(--muted)] mt-1">
@@ -49,21 +50,12 @@ export default function MyUploadsPage() {
                 {job.status}
               </span>
             </div>
-            {job.platforms.map((p) => {
-              const live = progress[`${job.id}:${p.platform}`]
-              const status = live?.status ?? p.status
-              const value = live?.progress ?? p.progress
-              return (
-                <div key={p.platform} className="glass-soft rounded-2xl p-3 space-y-2">
-                  <div className="flex items-center gap-2 text-sm capitalize">
-                    <StatusIcon status={status} />
-                    {p.platform}
-                    <span className="ml-auto text-xs text-[var(--muted)]">{status}</span>
-                  </div>
-                  <ProgressBar value={value} />
-                </div>
-              )
-            })}
+            <ProgressPanel
+              jobId={job.id}
+              platforms={job.platforms}
+              live={progress}
+              title="Platform status"
+            />
           </div>
         ))}
       </div>

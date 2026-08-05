@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import {
   Area,
   AreaChart,
+  Bar,
+  BarChart,
   CartesianGrid,
   ResponsiveContainer,
   Tooltip,
@@ -10,6 +12,7 @@ import {
   PieChart,
   Pie,
   Cell,
+  Legend,
 } from 'recharts'
 import api from '../services/api'
 import { Skeleton } from '../components/ui'
@@ -55,6 +58,16 @@ export default function DashboardPage() {
     name: p,
     value: data.byPlatform
       .filter((r) => r.platform === p)
+      .reduce((sum, r) => sum + r.count, 0),
+  }))
+
+  const successVsFailed = ['instagram', 'tiktok', 'youtube'].map((p) => ({
+    platform: p === 'youtube' ? 'YouTube' : p.charAt(0).toUpperCase() + p.slice(1),
+    success: data.byPlatform
+      .filter((r) => r.platform === p && r.status === 'success')
+      .reduce((sum, r) => sum + r.count, 0),
+    failed: data.byPlatform
+      .filter((r) => r.platform === p && r.status === 'failed')
       .reduce((sum, r) => sum + r.count, 0),
   }))
 
@@ -142,6 +155,29 @@ export default function DashboardPage() {
               </span>
             ))}
           </div>
+        </div>
+      </div>
+
+      <div className="glass rounded-3xl p-5">
+        <h2 className="page-title text-lg mb-4">Success vs failed by platform</h2>
+        <div className="h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={successVsFailed}>
+              <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
+              <XAxis dataKey="platform" tick={{ fill: '#8e8e93', fontSize: 11 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: '#8e8e93', fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
+              <Tooltip
+                contentStyle={{
+                  background: 'rgba(20,22,30,0.9)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: 16,
+                }}
+              />
+              <Legend />
+              <Bar dataKey="success" fill="#30d158" radius={[8, 8, 0, 0]} />
+              <Bar dataKey="failed" fill="#ff453a" radius={[8, 8, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       </div>
 
