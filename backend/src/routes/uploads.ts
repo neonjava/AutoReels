@@ -10,6 +10,7 @@ export function createUploadRouter(io: SocketServer) {
   router.post('/preview', requireAuth, controller.preview);
   router.post('/', requireAuth, controller.create);
   router.patch('/:id/caption', requireAuth, requireAdmin, controller.updateCaption);
+  router.post('/:id/publish-now', requireAuth, requireAdmin, controller.publishNow);
 
   return router;
 }

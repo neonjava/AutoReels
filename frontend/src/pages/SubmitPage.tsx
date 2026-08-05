@@ -36,6 +36,7 @@ export default function SubmitPage() {
         <h1 className="page-title text-3xl">Submit a Short</h1>
         <p className="text-[var(--muted)] mt-1">
           Paste a YouTube Shorts link. Caption hashtags and platforms are applied automatically.
+          Uploads are delayed by the admin schedule (default 6 hours) before posting.
         </p>
       </div>
 
@@ -52,12 +53,22 @@ export default function SubmitPage() {
           className="w-full rounded-2xl bg-gradient-to-r from-[#5ac8fa] to-[#0a84ff] py-3 font-medium text-white inline-flex items-center justify-center gap-2 disabled:opacity-60"
         >
           {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-          {loading ? 'Submitting…' : 'Submit for upload'}
+          {loading ? 'Submitting…' : 'Submit (scheduled)'}
         </button>
         {error && <p className="text-sm text-red-400">{error}</p>}
       </form>
 
-      {job && (
+      {job && job.status === 'scheduled' && (
+        <div className="glass rounded-[28px] p-6 text-sm text-sky-300">
+          Scheduled
+          {job.scheduled_for
+            ? ` — will publish around ${new Date(job.scheduled_for + 'Z').toLocaleString()}`
+            : ''}
+          . Track it under My Uploads.
+        </div>
+      )}
+
+      {job && job.status !== 'scheduled' && (
         <div className="space-y-3">
           <div className="flex items-center justify-between px-1">
             <div className="page-title text-lg">{job.title || 'Upload started'}</div>

@@ -52,6 +52,29 @@ export default function SettingsPage() {
     )
   }
 
+  function toggle(key: string, label: string, hint?: string) {
+    return (
+      <label className="flex items-center justify-between gap-3 glass-soft rounded-2xl px-4 py-3">
+        <span className="text-sm">
+          {label}
+          {hint ? (
+            <span className="block text-xs text-[var(--muted)] mt-0.5">{hint}</span>
+          ) : null}
+        </span>
+        <input
+          type="checkbox"
+          checked={settings![key] === 'true'}
+          onChange={(e) =>
+            setSettings({
+              ...settings!,
+              [key]: e.target.checked ? 'true' : 'false',
+            })
+          }
+        />
+      </label>
+    )
+  }
+
   return (
     <form onSubmit={onSave} className="space-y-6 max-w-2xl">
       <div>
@@ -65,34 +88,28 @@ export default function SettingsPage() {
         {field('download_location', 'Download location')}
         {field('upload_quality', 'Upload quality')}
         {field('retry_count', 'Retry count')}
+        {field(
+          'upload_delay_hours',
+          'Upload delay (hours) — every URL waits this long before publishing'
+        )}
 
-        <label className="flex items-center justify-between gap-3 glass-soft rounded-2xl px-4 py-3">
-          <span className="text-sm">Auto-delete downloaded videos</span>
-          <input
-            type="checkbox"
-            checked={settings.auto_delete_videos === 'true'}
-            onChange={(e) =>
-              setSettings({
-                ...settings,
-                auto_delete_videos: e.target.checked ? 'true' : 'false',
-              })
-            }
-          />
-        </label>
+        {toggle('auto_delete_videos', 'Auto-delete downloaded videos')}
+        {toggle('demo_mode', 'Demo mode (simulate uploads)')}
 
-        <label className="flex items-center justify-between gap-3 glass-soft rounded-2xl px-4 py-3">
-          <span className="text-sm">Demo mode (simulate uploads)</span>
-          <input
-            type="checkbox"
-            checked={settings.demo_mode === 'true'}
-            onChange={(e) =>
-              setSettings({
-                ...settings,
-                demo_mode: e.target.checked ? 'true' : 'false',
-              })
-            }
-          />
-        </label>
+        <div className="pt-2 border-t border-white/10">
+          <div className="text-sm font-medium mb-3">Instagram Reel options</div>
+          {toggle(
+            'ig_hide_like_counts',
+            'Hide like & view counts',
+            'Sent as like_and_view_counts_disabled when Instagram accepts it'
+          )}
+          {toggle(
+            'ig_disable_remix',
+            'Prefer remix/repost off',
+            'Account “Allow remixing” in Instagram settings also controls this'
+          )}
+          {toggle('ig_share_to_feed', 'Also share Reel to Feed tab')}
+        </div>
 
         <label className="block space-y-1.5">
           <span className="text-xs text-[var(--muted)]">Theme</span>

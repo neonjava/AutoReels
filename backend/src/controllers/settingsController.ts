@@ -11,6 +11,10 @@ const ALLOWED = new Set([
   'retry_count',
   'default_platforms',
   'demo_mode',
+  'upload_delay_hours',
+  'ig_hide_like_counts',
+  'ig_disable_remix',
+  'ig_share_to_feed',
 ]);
 
 export function getSettings(_req: Request, res: Response) {

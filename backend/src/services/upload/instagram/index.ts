@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import { BasePlatformProvider } from '../base.js';
 import type { UploadJobPayload, UploadResult } from '../types.js';
+import { getSetting } from '../../../utils/settings.js';
 
 const IG_GRAPH = 'https://graph.instagram.com/v21.0';
 
@@ -105,13 +106,21 @@ export class InstagramProvider extends BasePlatformProvider {
     videoUrl: string,
     caption: string
   ): Promise<string> {
+    const hideCounts = getSetting('ig_hide_like_counts', 'true') === 'true';
+    const shareToFeed = getSetting('ig_share_to_feed', 'true') === 'true';
+
     const body = new URLSearchParams({
       media_type: 'REELS',
       video_url: videoUrl,
       caption,
-      share_to_feed: 'true',
+      share_to_feed: shareToFeed ? 'true' : 'false',
       access_token: accessToken,
     });
+
+    // Hide like & view counts when supported by Instagram Content Publishing
+    if (hideCounts) {
+      body.set('like_and_view_counts_disabled', 'true');
+    }
 
     const res = await fetch(`${IG_GRAPH}/${igUserId}/media`, {
       method: 'POST',

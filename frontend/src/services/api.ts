@@ -51,6 +51,7 @@ export interface UploadJob {
   caption: string
   status: string
   created_at: string
+  scheduled_for?: string | null
   created_by_username?: string
   platforms: PlatformUpload[]
 }

@@ -11,6 +11,7 @@ import historyRoutes from './routes/history.js';
 import settingsRoutes from './routes/settings.js';
 import analyticsRoutes from './routes/analytics.js';
 import { createUploadRouter } from './routes/uploads.js';
+import { startScheduler } from './services/scheduler.js';
 
 initDatabase();
 seedAdmin();
@@ -52,6 +53,7 @@ io.on('connection', (socket) => {
 const port = Number(process.env.PORT ?? 4000);
 server.listen(port, () => {
   console.log(`AutoReels API listening on http://localhost:${port}`);
+  startScheduler(io);
 });
 
 function seedAdmin() {

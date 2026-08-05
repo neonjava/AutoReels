@@ -11,6 +11,11 @@ export const db = new Database(path.join(dataDir, 'autoreels.db'));
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
+function hasColumn(table: string, column: string): boolean {
+  const cols = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
+  return cols.some((c) => c.name === column);
+}
+
 export function initDatabase() {
   db.exec(`
     CREATE TABLE IF NOT EXISTS users (
@@ -67,6 +72,13 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_platform_uploads_job ON platform_uploads(job_id);
   `);
 
+  if (!hasColumn('upload_jobs', 'scheduled_for')) {
+    db.exec(`ALTER TABLE upload_jobs ADD COLUMN scheduled_for TEXT`);
+  }
+  if (!hasColumn('upload_jobs', 'platforms_json')) {
+    db.exec(`ALTER TABLE upload_jobs ADD COLUMN platforms_json TEXT`);
+  }
+
   const platforms = ['instagram', 'tiktok', 'youtube'] as const;
   const insertPlatform = db.prepare(
     `INSERT OR IGNORE INTO platform_accounts (platform, connected) VALUES (?, 0)`
@@ -82,6 +94,12 @@ export function initDatabase() {
     retry_count: '3',
     default_platforms: 'instagram,tiktok,youtube',
     demo_mode: process.env.DEMO_MODE ?? 'true',
+    // Delay every URL upload by 6 hours before publishing to platforms
+    upload_delay_hours: '6',
+    // Instagram Reel privacy-ish options
+    ig_hide_like_counts: 'true',
+    ig_disable_remix: 'true',
+    ig_share_to_feed: 'true',
   };
 
   const insertSetting = db.prepare(

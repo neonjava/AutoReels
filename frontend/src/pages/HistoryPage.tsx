@@ -57,9 +57,23 @@ export default function HistoryPage() {
                 <div className="page-title text-lg">{job.title || 'Untitled'}</div>
                 <div className="text-xs text-[var(--muted)] mt-1">
                   {job.created_by_username} · {new Date(job.created_at + 'Z').toLocaleString()}
+                  {job.status === 'scheduled' && job.scheduled_for
+                    ? ` · publishes ${new Date(job.scheduled_for + 'Z').toLocaleString()}`
+                    : ''}
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                {job.status === 'scheduled' && (
+                  <button
+                    onClick={async () => {
+                      await api.post(`/uploads/${job.id}/publish-now`)
+                      await load()
+                    }}
+                    className="text-xs px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300"
+                  >
+                    Publish now
+                  </button>
+                )}
                 <button
                   onClick={() => {
                     setEditingId(editingId === job.id ? null : job.id)
