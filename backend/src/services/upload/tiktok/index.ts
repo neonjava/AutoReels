@@ -36,7 +36,12 @@ export class TikTokProvider extends BasePlatformProvider {
           const start = i * CHUNK_SIZE;
           const length = i === count - 1 ? size - start : CHUNK_SIZE;
           const buffer = Buffer.allocUnsafe(length);
-          await file.read(buffer, 0, length, start);
+          let offset = 0;
+          while (offset < length) {
+            const { bytesRead } = await file.read(buffer, offset, length - offset, start + offset);
+            if (bytesRead === 0) throw new Error('Video ended during TikTok upload');
+            offset += bytesRead;
+          }
           const upload = await fetch(init.data.upload_url, {
             method: 'PUT',
             headers: { 'Content-Type': 'video/mp4', 'Content-Length': String(length), 'Content-Range': `bytes ${start}-${start + length - 1}/${size}` },
