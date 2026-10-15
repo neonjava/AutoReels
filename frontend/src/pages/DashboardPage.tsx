@@ -54,15 +54,15 @@ export default function DashboardPage() {
     )
   }
 
-  const platformMix = ['instagram', 'tiktok', 'youtube'].map((p) => ({
-    name: p,
+  const platformMix = ['instagram', 'instagram2', 'tiktok', 'youtube'].map((p) => ({
+    name: p === 'instagram' ? 'IG 1' : p === 'instagram2' ? 'IG 2' : p === 'youtube' ? 'YouTube' : 'TikTok',
     value: data.byPlatform
       .filter((r) => r.platform === p)
       .reduce((sum, r) => sum + r.count, 0),
   }))
 
-  const successVsFailed = ['instagram', 'tiktok', 'youtube'].map((p) => ({
-    platform: p === 'youtube' ? 'YouTube' : p.charAt(0).toUpperCase() + p.slice(1),
+  const successVsFailed = ['instagram', 'instagram2', 'tiktok', 'youtube'].map((p) => ({
+    platform: p === 'instagram' ? 'Instagram 1' : p === 'instagram2' ? 'Instagram 2' : p === 'youtube' ? 'YouTube' : 'TikTok',
     success: data.byPlatform
       .filter((r) => r.platform === p && r.status === 'success')
       .reduce((sum, r) => sum + r.count, 0),

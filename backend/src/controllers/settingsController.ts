@@ -4,17 +4,16 @@ import { getAllSettings, setSetting } from '../utils/settings.js';
 
 const ALLOWED = new Set([
   'default_hashtags',
-  'download_location',
   'auto_delete_videos',
   'theme',
   'upload_quality',
   'retry_count',
   'default_platforms',
-  'demo_mode',
   'upload_delay_hours',
   'ig_hide_like_counts',
   'ig_disable_remix',
   'ig_share_to_feed',
+  'yt_hide_public_stats',
 ]);
 
 export function getSettings(_req: Request, res: Response) {

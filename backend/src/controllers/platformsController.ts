@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { listProviders, getProvider } from '../services/upload/index.js';
+import { isPlatformId } from '../services/upload/platformIds.js';
 import type { PlatformId } from '../services/upload/types.js';
 
 export function listPlatforms(_req: Request, res: Response) {
@@ -9,8 +10,8 @@ export function listPlatforms(_req: Request, res: Response) {
 }
 
 export function connectPlatform(req: Request, res: Response) {
-  const platform = req.params.platform as PlatformId;
-  if (!['instagram', 'tiktok', 'youtube'].includes(platform)) {
+  const platform = req.params.platform as string;
+  if (!isPlatformId(platform)) {
     return res.status(400).json({ error: 'Unknown platform' });
   }
 
@@ -22,16 +23,22 @@ export function connectPlatform(req: Request, res: Response) {
   if (!parsed.success) {
     return res.status(400).json({ error: 'Invalid connect payload' });
   }
+  if (!parsed.data.credentials.accessToken) {
+    return res.status(400).json({ error: 'Access token is required' });
+  }
+  if ((platform === 'instagram' || platform === 'instagram2') && !parsed.data.credentials.igUserId) {
+    return res.status(400).json({ error: 'Instagram User ID is required' });
+  }
 
-  getProvider(platform).connect(parsed.data);
-  res.json({ platform: getProvider(platform).getConnectionStatus() });
+  getProvider(platform as PlatformId).connect(parsed.data);
+  res.json({ platform: getProvider(platform as PlatformId).getConnectionStatus() });
 }
 
 export function disconnectPlatform(req: Request, res: Response) {
-  const platform = req.params.platform as PlatformId;
-  if (!['instagram', 'tiktok', 'youtube'].includes(platform)) {
+  const platform = req.params.platform as string;
+  if (!isPlatformId(platform)) {
     return res.status(400).json({ error: 'Unknown platform' });
   }
-  getProvider(platform).disconnect();
-  res.json({ platform: getProvider(platform).getConnectionStatus() });
+  getProvider(platform as PlatformId).disconnect();
+  res.json({ platform: getProvider(platform as PlatformId).getConnectionStatus() });
 }

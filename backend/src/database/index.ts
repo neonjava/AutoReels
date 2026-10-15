@@ -32,7 +32,7 @@ export function initDatabase() {
     );
 
     CREATE TABLE IF NOT EXISTS platform_accounts (
-      platform TEXT PRIMARY KEY CHECK(platform IN ('instagram', 'tiktok', 'youtube')),
+      platform TEXT PRIMARY KEY,
       username TEXT,
       connected INTEGER NOT NULL DEFAULT 0,
       credentials_enc TEXT,
@@ -72,6 +72,31 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_platform_uploads_job ON platform_uploads(job_id);
   `);
 
+  // Migrate existing table if it was created with restrictive CHECK constraint
+  try {
+    const tableSql = db
+      .prepare(`SELECT sql FROM sqlite_master WHERE type='table' AND name='platform_accounts'`)
+      .get() as { sql: string } | undefined;
+    if (tableSql && tableSql.sql.includes('CHECK')) {
+      db.exec(`
+        CREATE TABLE platform_accounts_new (
+          platform TEXT PRIMARY KEY,
+          username TEXT,
+          connected INTEGER NOT NULL DEFAULT 0,
+          credentials_enc TEXT,
+          last_upload_at TEXT,
+          last_status TEXT,
+          updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        INSERT OR IGNORE INTO platform_accounts_new SELECT * FROM platform_accounts;
+        DROP TABLE platform_accounts;
+        ALTER TABLE platform_accounts_new RENAME TO platform_accounts;
+      `);
+    }
+  } catch {
+    /* ignore migration if not needed */
+  }
+
   if (!hasColumn('upload_jobs', 'scheduled_for')) {
     db.exec(`ALTER TABLE upload_jobs ADD COLUMN scheduled_for TEXT`);
   }
@@ -79,7 +104,7 @@ export function initDatabase() {
     db.exec(`ALTER TABLE upload_jobs ADD COLUMN platforms_json TEXT`);
   }
 
-  const platforms = ['instagram', 'tiktok', 'youtube'] as const;
+  const platforms = ['instagram', 'instagram2', 'tiktok', 'youtube'] as const;
   const insertPlatform = db.prepare(
     `INSERT OR IGNORE INTO platform_accounts (platform, connected) VALUES (?, 0)`
   );
@@ -87,19 +112,20 @@ export function initDatabase() {
 
   const defaults: Record<string, string> = {
     default_hashtags: '#drdonut\n#donutsmp\n#dream\n#viral\n#minecraft',
-    download_location: './downloads',
-    auto_delete_videos: 'false',
+    auto_delete_videos: 'true',
     theme: 'dark',
     upload_quality: 'high',
-    retry_count: '3',
-    default_platforms: 'instagram,tiktok,youtube',
-    demo_mode: process.env.DEMO_MODE ?? 'true',
-    // Delay every URL upload by 6 hours before publishing to platforms
-    upload_delay_hours: '6',
+    retry_count: '0',
+    default_platforms: 'instagram,instagram2,tiktok,youtube',
+    demo_mode: process.env.DEMO_MODE ?? 'false',
+    // Delay between queued URL publishes (hours). Jobs stack: +1h, +2h, …
+    upload_delay_hours: '0',
     // Instagram Reel privacy-ish options
     ig_hide_like_counts: 'true',
     ig_disable_remix: 'true',
     ig_share_to_feed: 'true',
+    // YouTube: hide extended public stats on watch page
+    yt_hide_public_stats: 'true',
   };
 
   const insertSetting = db.prepare(
@@ -108,4 +134,12 @@ export function initDatabase() {
   for (const [key, value] of Object.entries(defaults)) {
     insertSetting.run(key, value);
   }
+
+  // Migrate old 6h default → 1h queue spacing
+  db.prepare(
+    `UPDATE settings SET value = '1' WHERE key = 'upload_delay_hours' AND value = '6'`
+  ).run();
+  db.prepare(`UPDATE settings SET value = '0' WHERE key = 'retry_count' AND value = '3'`).run();
+  db.prepare(`UPDATE settings SET value = '0' WHERE key = 'upload_delay_hours' AND value = '1'`).run();
+  db.prepare(`UPDATE settings SET value = 'true' WHERE key = 'auto_delete_videos' AND value = 'false'`).run();
 }

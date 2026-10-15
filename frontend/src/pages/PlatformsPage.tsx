@@ -18,12 +18,13 @@ export default function PlatformsPage() {
     const username = window.prompt(`Username / handle for ${platform}`)
     if (!username) return
     const accessToken = window.prompt(
-      `Access token for ${platform} (stored encrypted; leave blank for demo connect)`
+      `Access token for ${platform} (stored encrypted)`
     )
+    if (!accessToken) return
     const credentials: Record<string, string> = {
-      accessToken: accessToken || 'demo-token',
+      accessToken,
     }
-    if (platform === 'instagram' && accessToken) {
+    if ((platform === 'instagram' || platform === 'instagram2') && accessToken) {
       const igUserId = window.prompt(
         'Instagram User ID (numeric). Leave blank to auto-detect from token.'
       )

@@ -1,4 +1,4 @@
-export type PlatformId = 'instagram' | 'tiktok' | 'youtube';
+export type PlatformId = 'instagram' | 'instagram2' | 'tiktok' | 'youtube';
 
 export interface ConnectionInfo {
   platform: PlatformId;
@@ -24,6 +24,7 @@ export interface UploadResult {
 
 export interface PlatformProvider {
   id: PlatformId;
+  displayName?: string;
   getConnectionStatus(): ConnectionInfo;
   connect(input: { username: string; credentials: Record<string, string> }): void;
   disconnect(): void;

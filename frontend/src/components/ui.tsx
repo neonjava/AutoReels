@@ -1,10 +1,11 @@
 import { motion } from 'framer-motion'
-import { CheckCircle2, Loader2, XCircle, WifiOff } from 'lucide-react'
+import { CheckCircle2, Loader2, XCircle } from 'lucide-react'
 import type { PlatformStatus } from '../services/api'
 import clsx from 'clsx'
 
 const labels: Record<string, string> = {
-  instagram: 'Instagram',
+  instagram: 'Instagram 1',
+  instagram2: 'Instagram 2',
   tiktok: 'TikTok',
   youtube: 'YouTube Shorts',
 }
@@ -56,13 +57,6 @@ export function PlatformCard({
           <div className="mt-1 capitalize">{platform.lastStatus ?? 'idle'}</div>
         </div>
       </div>
-
-      {platform.demo && (
-        <div className="text-xs text-amber-300/90 flex items-center gap-1.5">
-          <WifiOff className="h-3.5 w-3.5" />
-          Demo mode — uploads are simulated
-        </div>
-      )}
 
       <div className="flex gap-2 mt-auto">
         <button

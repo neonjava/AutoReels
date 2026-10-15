@@ -1,6 +1,5 @@
 import { db } from '../../database/index.js';
 import { encrypt, decrypt } from '../crypto/index.js';
-import { isDemoMode } from '../../utils/settings.js';
 import type {
   ConnectionInfo,
   PlatformId,
@@ -8,10 +7,6 @@ import type {
   UploadJobPayload,
   UploadResult,
 } from './types.js';
-
-function sleep(ms: number) {
-  return new Promise((r) => setTimeout(r, ms));
-}
 
 export abstract class BasePlatformProvider implements PlatformProvider {
   abstract id: PlatformId;
@@ -37,7 +32,7 @@ export abstract class BasePlatformProvider implements PlatformProvider {
       username: row?.username ?? null,
       lastUploadAt: row?.last_upload_at ?? null,
       lastStatus: row?.last_status ?? null,
-      demo: isDemoMode() || !row?.connected,
+      demo: false,
     };
   }
 
@@ -79,25 +74,8 @@ export abstract class BasePlatformProvider implements PlatformProvider {
     onProgress: (progress: number) => void
   ): Promise<UploadResult> {
     const status = this.getConnectionStatus();
-    if (isDemoMode() || !status.connected) {
-      return this.demoUpload(job, onProgress);
-    }
+    if (!status.connected) return { success: false, error: 'Platform account is not connected' };
     return this.realUpload(job, onProgress);
-  }
-
-  protected async demoUpload(
-    _job: UploadJobPayload,
-    onProgress: (progress: number) => void
-  ): Promise<UploadResult> {
-    for (const p of [10, 35, 60, 85, 100]) {
-      await sleep(400 + Math.random() * 400);
-      onProgress(p);
-    }
-    this.markUpload('success');
-    return {
-      success: true,
-      remoteId: `demo_${this.id}_${Date.now()}`,
-    };
   }
 
   /** Real API path — override in each provider when credentials are present. */

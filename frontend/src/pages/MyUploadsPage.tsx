@@ -28,7 +28,7 @@ export default function MyUploadsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="page-title text-3xl">My uploads</h1>
-        <p className="text-[var(--muted)] mt-1">Status for links you submitted</p>
+        <p className="text-[var(--muted)] mt-1">Status for videos you submitted</p>
       </div>
 
       <div className="space-y-3">

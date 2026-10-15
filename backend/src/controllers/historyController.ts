@@ -16,7 +16,8 @@ export function listHistory(req: Request, res: Response) {
   const jobs = isAdmin
     ? (db
         .prepare(
-          `SELECT j.*, u.username as created_by_username
+          `SELECT j.id, j.source_url, j.title, j.description, j.caption, j.status,
+                  j.created_at, j.updated_at, j.scheduled_for, u.username as created_by_username
            FROM upload_jobs j
            JOIN users u ON u.id = j.created_by
            ORDER BY j.created_at DESC
@@ -25,7 +26,8 @@ export function listHistory(req: Request, res: Response) {
         .all() as Array<{ id: string }>)
     : (db
         .prepare(
-          `SELECT j.*, u.username as created_by_username
+          `SELECT j.id, j.source_url, j.title, j.description, j.caption, j.status,
+                  j.created_at, j.updated_at, j.scheduled_for, u.username as created_by_username
            FROM upload_jobs j
            JOIN users u ON u.id = j.created_by
            WHERE j.created_by = ?
@@ -40,7 +42,8 @@ export function listHistory(req: Request, res: Response) {
 export function getHistoryItem(req: Request, res: Response) {
   const job = db
     .prepare(
-      `SELECT j.*, u.username as created_by_username
+      `SELECT j.id, j.created_by, j.source_url, j.title, j.description, j.caption, j.status,
+              j.created_at, j.updated_at, j.scheduled_for, u.username as created_by_username
        FROM upload_jobs j
        JOIN users u ON u.id = j.created_by
        WHERE j.id = ?`
@@ -56,5 +59,6 @@ export function getHistoryItem(req: Request, res: Response) {
     .prepare(`SELECT * FROM platform_uploads WHERE job_id = ?`)
     .all(job.id);
 
-  res.json({ job: { ...job, platforms } });
+  const { created_by, ...publicJob } = job;
+  res.json({ job: { ...publicJob, platforms } });
 }

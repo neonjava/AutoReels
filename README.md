@@ -1,84 +1,20 @@
 # AutoReels
 
-Premium personal dashboard for pasting a YouTube Shorts link, generating a caption with default hashtags, and uploading to Instagram Reels, TikTok, and YouTube Shorts.
+Upload one MP4 video and publish it to connected Instagram, TikTok, and YouTube accounts.
 
-## Features
+![Project workflow](docs/workflow.svg)
 
-- **Dual roles**
-  - **Admin** — dashboard graphs, upload studio, platforms, history, settings, user management
-  - **Submitter** — paste a Shorts URL and track their own upload status
-- **Modular providers** — Instagram / TikTok / YouTube isolated under `UploadService`
-- **Demo mode** — full upload flow works without platform API keys
-- **Glassmorphism UI** — dark-by-default Apple-inspired dashboard (React + Vite + Tailwind + Framer Motion)
-- **Realtime progress** — Socket.IO per-platform status bars
-- **Secure storage** — JWT auth, bcrypt passwords, AES-GCM encrypted platform credentials
+## Workflow
 
-## Default hashtags
+1. Upload an MP4 video.
+2. Select connected accounts.
+3. Send video to each platform API.
+4. Track each platform result.
 
-Every caption appends (editable in Settings):
+## Getting started
 
-```text
-#drdonut
-#donutsmp
-#dream
-#viral
-#minecraft
-```
-
-## Quick start
-
-### Prerequisites
-
-- Node.js 20+
-- [yt-dlp](https://github.com/yt-dlp/yt-dlp) on `PATH`
-
-### Setup
-
-```bash
-git clone git@github.com:neonjava/AutoReels.git
-cd AutoReels
-npm run install:all
-cp backend/.env.example backend/.env
-npm run dev
-```
-
-- Frontend: http://localhost:5173
-- API: http://localhost:4000
-
-### Default admin
-
-From `backend/.env`:
-
-- Username: `admin`
-- Password: `REDACTED_PASSWORD`
-
-Create submitter accounts under **Users** in the admin UI.
-
-## Architecture
-
-```text
-frontend/          React + Vite + Tailwind + Framer Motion
-backend/
-  src/services/
-    download/      yt-dlp
-    caption/       title + hashtags
-    upload/
-      instagram/
-      tiktok/
-      youtube/
-```
-
-## Environment
-
-See [backend/.env.example](backend/.env.example).
-
-| Variable | Purpose |
-|---|---|
-| `JWT_SECRET` | Auth token signing |
-| `ENCRYPTION_KEY` | 64-char hex key for credential encryption |
-| `ADMIN_USERNAME` / `ADMIN_PASSWORD` | Seeded on first boot |
-| `DEMO_MODE` | Simulate uploads when true |
+Run `npm run install:all`, copy `backend/.env.example` to `backend/.env`, set unique `JWT_SECRET`, `ENCRYPTION_KEY`, and `ADMIN_PASSWORD`, then run `npm run dev`. Connect platform accounts in the dashboard. Instagram requires a public HTTPS `PUBLIC_BASE_URL`; TikTok requires a developer app approved for `video.publish`; YouTube requires a token with `youtube.upload` scope.
 
 ## License
 
-Private
+The project code is licensed under AGPL-3.0-only. See [LICENSE](LICENSE).

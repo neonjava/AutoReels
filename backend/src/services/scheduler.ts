@@ -29,7 +29,7 @@ async function tick(io: SocketServer) {
            AND scheduled_for IS NOT NULL
            AND datetime(scheduled_for) <= datetime('now')
          ORDER BY scheduled_for ASC
-         LIMIT 5`
+         LIMIT 1`
       )
       .all() as Array<{
       id: string;
@@ -92,12 +92,42 @@ function parsePlatforms(raw: string | null): PlatformId[] {
 }
 
 export function getUploadDelayHours(): number {
-  const n = Number(getSetting('upload_delay_hours', '6'));
-  return Number.isFinite(n) && n >= 0 ? n : 6;
+  const n = Number(getSetting('upload_delay_hours', '1'));
+  return Number.isFinite(n) && n >= 0 ? n : 1;
 }
 
 /** SQLite-friendly UTC datetime string: YYYY-MM-DD HH:MM:SS */
 export function scheduledForFromNow(hours: number): string {
   const d = new Date(Date.now() + hours * 60 * 60 * 1000);
   return d.toISOString().replace('T', ' ').slice(0, 19);
+}
+
+/**
+ * Next publish slot in the schedule queue.
+ * First job → now + delay. Each following job → previous scheduled time + delay,
+ * so two uploads now publish at +1h and +2h (not both at +1h).
+ */
+export function nextQueuedSchedule(delayHours: number): string {
+  const delayMs = Math.max(0, delayHours) * 60 * 60 * 1000;
+  const earliest = Date.now() + delayMs;
+
+  const latest = db
+    .prepare(
+      `SELECT scheduled_for FROM upload_jobs
+       WHERE status = 'scheduled'
+         AND scheduled_for IS NOT NULL
+       ORDER BY datetime(scheduled_for) DESC
+       LIMIT 1`
+    )
+    .get() as { scheduled_for: string } | undefined;
+
+  let slot = earliest;
+  if (latest?.scheduled_for) {
+    const lastMs = Date.parse(latest.scheduled_for.replace(' ', 'T') + 'Z');
+    if (Number.isFinite(lastMs)) {
+      slot = Math.max(earliest, lastMs + delayMs);
+    }
+  }
+
+  return new Date(slot).toISOString().replace('T', ' ').slice(0, 19);
 }

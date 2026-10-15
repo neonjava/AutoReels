@@ -85,16 +85,14 @@ export default function SettingsPage() {
       <div className="glass rounded-3xl p-5 space-y-4">
         {field('default_hashtags', 'Default hashtags (one per line)', true)}
         {field('default_platforms', 'Default platforms (comma-separated)')}
-        {field('download_location', 'Download location')}
         {field('upload_quality', 'Upload quality')}
         {field('retry_count', 'Retry count')}
         {field(
           'upload_delay_hours',
-          'Upload delay (hours) — every URL waits this long before publishing'
+          'Upload delay (hours)'
         )}
 
-        {toggle('auto_delete_videos', 'Auto-delete downloaded videos')}
-        {toggle('demo_mode', 'Demo mode (simulate uploads)')}
+        {toggle('auto_delete_videos', 'Delete uploaded videos after publishing')}
 
         <div className="pt-2 border-t border-white/10">
           <div className="text-sm font-medium mb-3">Instagram Reel options</div>
@@ -109,6 +107,15 @@ export default function SettingsPage() {
             'Account “Allow remixing” in Instagram settings also controls this'
           )}
           {toggle('ig_share_to_feed', 'Also share Reel to Feed tab')}
+        </div>
+
+        <div className="pt-2 border-t border-white/10">
+          <div className="text-sm font-medium mb-3">YouTube options</div>
+          {toggle(
+            'yt_hide_public_stats',
+            'Hide public like / stats on watch page',
+            'Sets publicStatsViewable=false (YouTube API). Like-count toggle in Studio may still apply separately.'
+          )}
         </div>
 
         <label className="block space-y-1.5">

@@ -15,7 +15,7 @@ api.interceptors.request.use((config) => {
 export default api
 
 export type Role = 'admin' | 'submitter'
-export type PlatformId = 'instagram' | 'tiktok' | 'youtube'
+export type PlatformId = 'instagram' | 'instagram2' | 'tiktok' | 'youtube'
 
 export interface User {
   id: number

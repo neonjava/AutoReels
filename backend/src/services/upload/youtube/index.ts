@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import { BasePlatformProvider } from '../base.js';
 import type { UploadJobPayload, UploadResult } from '../types.js';
+import { getSetting } from '../../../utils/settings.js';
 
 /**
  * YouTube Shorts via YouTube Data API v3 (resumable videos.insert).
@@ -16,7 +17,7 @@ export class YouTubeProvider extends BasePlatformProvider {
   ): Promise<UploadResult> {
     const creds = this.getCredentials();
     if (!creds?.accessToken) {
-      return this.demoUpload(job, onProgress);
+      return { success: false, error: 'YouTube access token is missing' };
     }
 
     onProgress(5);
@@ -26,6 +27,7 @@ export class YouTubeProvider extends BasePlatformProvider {
       }
 
       const fileSize = fs.statSync(job.videoPath).size;
+      const hideStats = getSetting('yt_hide_public_stats', 'true') === 'true';
       const metadata = {
         snippet: {
           title: (job.title || 'AutoReels Short').slice(0, 100),
@@ -35,6 +37,8 @@ export class YouTubeProvider extends BasePlatformProvider {
         status: {
           privacyStatus: 'public',
           selfDeclaredMadeForKids: false,
+          // Hides extended public stats on the watch page (YouTube API equivalent)
+          publicStatsViewable: !hideStats,
         },
       };
 

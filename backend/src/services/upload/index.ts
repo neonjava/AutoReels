@@ -7,7 +7,8 @@ import { YouTubeProvider } from './youtube/index.js';
 import type { PlatformId, PlatformProvider } from './types.js';
 
 const providers: Record<PlatformId, PlatformProvider> = {
-  instagram: new InstagramProvider(),
+  instagram: new InstagramProvider('instagram', 'Instagram 1'),
+  instagram2: new InstagramProvider('instagram2', 'Instagram 2'),
   tiktok: new TikTokProvider(),
   youtube: new YouTubeProvider(),
 };
@@ -21,7 +22,8 @@ export function listProviders(): PlatformProvider[] {
 }
 
 export function getRetryCount(): number {
-  return Number(getSetting('retry_count', '3')) || 3;
+  const retries = Number(getSetting('retry_count', '0'));
+  return Number.isFinite(retries) ? Math.max(0, Math.min(3, retries)) : 0;
 }
 
 export async function uploadToPlatforms(

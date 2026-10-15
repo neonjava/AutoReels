@@ -30,5 +30,5 @@ export function getDefaultHashtags(): string {
 }
 
 export function isDemoMode(): boolean {
-  return getSetting('demo_mode', 'true') === 'true';
+  return false;
 }

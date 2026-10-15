@@ -2,6 +2,11 @@ import fs from 'node:fs';
 import { BasePlatformProvider } from '../base.js';
 import type { UploadJobPayload, UploadResult } from '../types.js';
 import { getSetting } from '../../../utils/settings.js';
+import {
+  createStagingToken,
+  getPublicBaseUrl,
+  isPubliclyReachableBase,
+} from '../../staging.js';
 
 const IG_GRAPH = 'https://graph.instagram.com/v21.0';
 
@@ -11,11 +16,16 @@ function sleep(ms: number) {
 
 /**
  * Instagram Reels via Instagram API with Instagram Login (graph.instagram.com).
- * Requires a public video URL — local files are staged to a temporary host first.
+ * Requires a public video URL served by this application.
+ * Multiple account slots (instagram, instagram2) share this provider class.
  */
 export class InstagramProvider extends BasePlatformProvider {
-  id = 'instagram' as const;
-  displayName = 'Instagram';
+  constructor(
+    public id: 'instagram' | 'instagram2' = 'instagram',
+    public displayName = id === 'instagram2' ? 'Instagram 2' : 'Instagram'
+  ) {
+    super();
+  }
 
   protected async realUpload(
     job: UploadJobPayload,
@@ -23,7 +33,7 @@ export class InstagramProvider extends BasePlatformProvider {
   ): Promise<UploadResult> {
     const creds = this.getCredentials();
     if (!creds?.accessToken || !creds?.igUserId) {
-      return this.demoUpload(job, onProgress);
+      return { success: false, error: 'Instagram credentials are incomplete' };
     }
 
     onProgress(5);
@@ -63,41 +73,13 @@ export class InstagramProvider extends BasePlatformProvider {
       throw new Error(`Video file not found: ${videoPath}`);
     }
 
-    const buf = fs.readFileSync(videoPath);
-    const form = new FormData();
-    form.append('reqtype', 'fileupload');
-    form.append(
-      'fileToUpload',
-      new Blob([buf], { type: 'video/mp4' }),
-      'reel.mp4'
-    );
-
-    // Instagram requires a publicly fetchable video URL.
-    // Catbox is used as a temporary staging host for local files.
-    let res: Response;
-    try {
-      res = await fetch('https://catbox.moe/user/api.php', {
-        method: 'POST',
-        body: form,
-        headers: { 'User-Agent': 'AutoReels/1.0' },
-      });
-    } catch (err) {
-      const cause =
-        err instanceof Error && 'cause' in err && err.cause instanceof Error
-          ? err.cause.message
-          : err instanceof Error
-            ? err.message
-            : 'network error';
-      throw new Error(`Failed to stage video for Instagram: ${cause}`);
+    const base = getPublicBaseUrl();
+    if (isPubliclyReachableBase(base)) {
+      const token = createStagingToken(videoPath);
+      return `${base}/api/stage/${token}`;
     }
 
-    const text = (await res.text()).trim();
-    if (!res.ok || !/^https?:\/\//i.test(text)) {
-      throw new Error(
-        `Could not stage video for Instagram (host returned: ${text.slice(0, 160)})`
-      );
-    }
-    return text.split(/\s+/)[0];
+    throw new Error('Set PUBLIC_BASE_URL to a public HTTPS server URL for Instagram publishing');
   }
 
   private async createReelContainer(

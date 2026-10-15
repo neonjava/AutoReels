@@ -48,7 +48,7 @@ export default function UsersPage() {
       <div>
         <h1 className="page-title text-3xl">Users</h1>
         <p className="text-[var(--muted)] mt-1">
-          Create submitter accounts that can only paste links and track their uploads
+          Create submitter accounts that can upload videos and track their posts
         </p>
       </div>
 

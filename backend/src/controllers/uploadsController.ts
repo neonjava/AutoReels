@@ -4,12 +4,11 @@ import { v4 as uuid } from 'uuid';
 import fs from 'node:fs';
 import type { Server as SocketServer } from 'socket.io';
 import { db } from '../database/index.js';
-import { downloadYouTubeShort } from '../services/download/index.js';
-import { buildCaption, appendHashtags } from '../services/caption/index.js';
-import { uploadToPlatforms } from '../services/upload/index.js';
+import { appendHashtags } from '../services/caption/index.js';
+import { getProvider, uploadToPlatforms } from '../services/upload/index.js';
 import {
   getUploadDelayHours,
-  scheduledForFromNow,
+  nextQueuedSchedule,
 } from '../services/scheduler.js';
 import { getSetting } from '../utils/settings.js';
 import type { PlatformId } from '../services/upload/types.js';
@@ -17,7 +16,8 @@ import type { PlatformId } from '../services/upload/types.js';
 function getJob(id: string) {
   const job = db
     .prepare(
-      `SELECT j.*, u.username as created_by_username
+      `SELECT j.id, j.source_url, j.title, j.description, j.caption, j.status,
+              j.created_at, j.updated_at, j.scheduled_for, u.username as created_by_username
        FROM upload_jobs j
        JOIN users u ON u.id = j.created_by
        WHERE j.id = ?`
@@ -30,85 +30,53 @@ function getJob(id: string) {
 }
 
 export function createUploadController(io: SocketServer) {
-  async function preview(req: Request, res: Response) {
-    const schema = z.object({ url: z.string().url() });
-    const parsed = schema.safeParse(req.body);
-    if (!parsed.success) {
-      return res.status(400).json({ error: 'Valid YouTube URL required' });
-    }
-
-    try {
-      const downloaded = await downloadYouTubeShort(parsed.data.url);
-      const caption = buildCaption(downloaded.title, downloaded.description);
-      res.json({
-        url: parsed.data.url,
-        title: downloaded.title,
-        description: downloaded.description,
-        caption,
-        videoPath: downloaded.videoPath,
-        delayHours: getUploadDelayHours(),
-      });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Download failed';
-      res.status(500).json({ error: message });
-    }
-  }
-
   async function create(req: Request, res: Response) {
     const schema = z.object({
-      url: z.string().url(),
-      caption: z.string().optional(),
-      title: z.string().optional(),
-      description: z.string().optional(),
-      videoPath: z.string().optional(),
-      platforms: z
-        .array(z.enum(['instagram', 'tiktok', 'youtube']))
-        .min(1)
-        .optional(),
+      caption: z.string().min(1),
+      title: z.string().min(1),
+      platforms: z.string().optional(),
       /** Admin-only: skip the delay and publish immediately */
-      publishNow: z.boolean().optional(),
+      publishNow: z.string().optional(),
     });
 
     const parsed = schema.safeParse(req.body);
     if (!parsed.success) {
+      if (req.file) fs.unlinkSync(req.file.path);
       return res.status(400).json({ error: parsed.error.flatten() });
     }
+    if (!req.file) return res.status(400).json({ error: 'MP4 video file required' });
 
     const isAdmin = req.user!.role === 'admin';
-    const defaultPlatforms = getSetting('default_platforms', 'instagram,tiktok,youtube')
-      .split(',')
-      .map((p) => p.trim())
-      .filter(Boolean) as PlatformId[];
-
-    const platforms = isAdmin
-      ? (parsed.data.platforms ?? defaultPlatforms)
-      : defaultPlatforms;
+    const connected = (['instagram', 'instagram2', 'tiktok', 'youtube'] as PlatformId[])
+      .filter((platform) => getProvider(platform).getConnectionStatus().connected);
+    let selected: unknown;
+    try {
+      selected = parsed.data.platforms ? JSON.parse(parsed.data.platforms) : connected;
+    } catch {
+      fs.unlinkSync(req.file.path);
+      return res.status(400).json({ error: 'Invalid platforms' });
+    }
+    const platforms = isAdmin && Array.isArray(selected)
+      ? selected.filter((p): p is PlatformId => connected.includes(p))
+      : connected;
 
     if (!platforms.length) {
-      return res.status(400).json({ error: 'No platforms selected' });
+      fs.unlinkSync(req.file.path);
+      return res.status(400).json({ error: 'Connect a platform account before uploading' });
     }
 
     try {
-      let videoPath = parsed.data.videoPath;
-      let title = parsed.data.title ?? 'Untitled';
-      let description = parsed.data.description ?? '';
-
-      if (!videoPath) {
-        const downloaded = await downloadYouTubeShort(parsed.data.url);
-        videoPath = downloaded.videoPath;
-        title = downloaded.title;
-        description = downloaded.description;
-      }
-
-      let caption = parsed.data.caption ?? buildCaption(title, description);
+      const videoPath = req.file.path;
+      const title = parsed.data.title;
+      let caption = parsed.data.caption;
       if (!isAdmin) {
         caption = appendHashtags(caption);
       }
 
       const delayHours = getUploadDelayHours();
-      const publishNow = Boolean(isAdmin && parsed.data.publishNow);
+      const publishNow = Boolean(isAdmin && parsed.data.publishNow === 'true');
       const useDelay = !publishNow && delayHours > 0;
-      const scheduledFor = useDelay ? scheduledForFromNow(delayHours) : null;
+      const scheduledFor = useDelay ? nextQueuedSchedule(delayHours) : null;
       const status = useDelay ? 'scheduled' : 'queued';
 
       const jobId = uuid();
@@ -118,9 +86,9 @@ export function createUploadController(io: SocketServer) {
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       ).run(
         jobId,
-        parsed.data.url,
+        'local-upload',
         title,
-        description,
+        '',
         caption,
         videoPath,
         req.user!.id,
@@ -160,6 +128,7 @@ export function createUploadController(io: SocketServer) {
         scheduledFor,
       });
     } catch (err) {
+      fs.unlinkSync(req.file.path);
       const message = err instanceof Error ? err.message : 'Upload failed';
       res.status(500).json({ error: message });
     }
@@ -230,5 +199,5 @@ export function createUploadController(io: SocketServer) {
     res.json({ job: getJob(id) });
   }
 
-  return { preview, create, updateCaption, publishNow };
+  return { create, updateCaption, publishNow };
 }
